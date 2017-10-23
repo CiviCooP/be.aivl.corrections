@@ -112,7 +112,7 @@ class CRM_Corrections_PetitionSignature {
       $petitionCount = $this->countPetitionsForContact($contactId);
       if ($petitionCount > 0) {
         $this->_logger->logMessage('Info', 'Found an existing petition activity for contact '
-          .$contactId.' and campaign '.$this->_campaignId.' on date '.$this->_submissionDate->format('d-mÝ')
+          .$contactId.' and campaign '.$this->_campaignId.' on date '.$this->_submissionDate->format('d-m-Y')
           .', ignored.');
         return TRUE;
       }
