@@ -48,6 +48,9 @@ class CRM_Corrections_Unsubscribe {
         }
       }
       fclose($file);
+      $parts = explode('.csv', $fileName);
+      $newName = $parts[0].'_processed.old';
+      rename($fileName, $newName);
     }
     // unsubscribe all contacts in data array
     $this->unsubscribe();
