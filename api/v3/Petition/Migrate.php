@@ -1,4 +1,5 @@
 <?php
+use CRM_Corrections_ExtensionUtil as E;
 
 /**
  * Petition.Migrate API
@@ -12,7 +13,7 @@
  * @throws API_Exception
  */
 function civicrm_api3_petition_Migrate($params) {
-  $returnValues = array('Importing petitions complete, check log in sites/default/files/civicrm/ConfigAndLog');
+  $returnValues = ['Importing petitions complete, check log in sites/default/files/civicrm/ConfigAndLog'];
   $petitionSignature = new CRM_Corrections_PetitionSignature();
   // read json file with petition signatures
   $config = CRM_Core_Config::singleton();

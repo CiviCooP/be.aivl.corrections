@@ -1,4 +1,5 @@
 <?php
+use CRM_Corrections_ExtensionUtil as E;
 
 /**
  * Group.Cleanup API
@@ -11,24 +12,24 @@
  * @throws API_Exception
  */
 function civicrm_api3_group_Cleanup($params) {
-  $returnValues = array();
-  $settings = civicrm_api3('Setting', 'Getsingle', array());
-  $resourcesPath = $settings['extensionsDir'].'/be.aivl.corrections/resources/';
+  $returnValues = [];
+  $container = CRM_Extension_System::singleton()->getFullContainer();
+  $resourcesPath = $container->getPath('be.aivl.corrections').'/resources/';
   // initialize logger
-  $logger = new CRM_Corrections_Logger('group_remove_');
   // check if folder
   if (!is_dir($resourcesPath)) {
-    $message = 'The resources folder '.$resourcesPath.' is not a valid folder or you have no access rights.';
-    $logger->logMessage('Error', $message);
+    $message = E::ts('The resources folder ') . $resourcesPath . E::ts(' is not a valid folder or you have no access rights.');
+    Civi::log()->error($message);
     return civicrm_api3_create_error($message);
-  } else {
+  }
+  else {
     $fileName = $resourcesPath.'groups_to_be_deleted.csv';
     $sourceFile = fopen($fileName, 'r');
     while (($sourceData = fgetcsv($sourceFile, 0, ";")) !== FALSE) {
-      _processGroup($sourceData, $returnValues, $logger);
+      _processGroup($sourceData, $returnValues);
     }
   }
-  return civicrm_api3_create_success($returnValues, $params, 'NewEntity', 'NewAction');
+  return civicrm_api3_create_success($returnValues, $params, 'Group', 'Cleanup');
 }
 
 /**
@@ -36,16 +37,15 @@ function civicrm_api3_group_Cleanup($params) {
  *
  * @param $sourceData
  * @param $returnValues
- * @param $logger
  */
-function _processGroup($sourceData, &$returnValues, $logger) {
+function _processGroup($sourceData, &$returnValues) {
   try {
-    civicrm_api3('Group', 'delete', array('id' => $sourceData[0]));
-    $message = 'Group ID '.$sourceData[0].' with title '.$sourceData[2].' was removed';
-    $logger->logMessage('Info', $message);
+    civicrm_api3('Group', 'delete', ['id' => $sourceData[0]]);
+    $message = E::ts('Group ID ') . $sourceData[0] . E::ts(' with title ') . $sourceData[2] . E::ts(' was removed');
+    Civi::log()->info($message);
     $returnValues[] = $message;
   }
   catch (CiviCRM_API3_Exception $ex) {
-    $logger->logMessage('Error', 'Could not find a group with ID '.$sourceData[0].' and title '.$sourceData[2]);
+    Civi::log()->error(E::ts('Could not find a group with ID ') . $sourceData[0] . E::ts(' and title ') . $sourceData[2]);
   }
 }

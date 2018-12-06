@@ -1,4 +1,6 @@
 <?php
+use CRM_Corrections_ExtensionUtil as E;
+
 
 /**
  * Class for processing petition signatures (import on new environment)
@@ -24,11 +26,11 @@ class CRM_Corrections_PetitionSignature {
     $this->_email = NULL;
     $this->_submissionDate = NULL;
     $this->_petitionActivityTypeId = CRM_Webcontacts_Config::singleton()->getPetitionActivityTypeId();
-    $this->_targetRecordTypeId = civicrm_api3('OptionValue', 'getvalue', array(
+    $this->_targetRecordTypeId = civicrm_api3('OptionValue', 'getvalue', [
       'option_group_id' => 'activity_contacts',
       'name' => 'Activity Targets',
       'return' => 'value',
-    ));
+    ]);
   }
 
   /**
@@ -38,21 +40,20 @@ class CRM_Corrections_PetitionSignature {
    */
   public function import($sourceData) {
     // log the petition signature opened
-    $this->_logger->logMessage('Info', 'Opened submission '.$sourceData->sid);
+    $this->_logger->logMessage('Info', E::ts('Opened submission ') . $sourceData->sid);
     // if petition identifying data could be extracted
     if ($this->extractPetitionData($sourceData)) {
       // check if there is any contact with the email
-      $contactCount = civicrm_api3('Contact', 'getcount', array(
-        'email' => $this->_email,
-      ));
+      $contactCount = civicrm_api3('Contact', 'getcount', ['email' => $this->_email]);
       // if no contact found, petition does not exist yet so continue. Else check if already exists
       if ($contactCount == 0) {
         $this->processPetition($sourceData);
-        $this->_logger->logMessage('Info', 'Imported petition '.$sourceData->sid. 'with API');
-      } else {
+        $this->_logger->logMessage('Info', E::ts('Imported petition ') . $sourceData->sid .  E::ts(' with API'));
+      }
+      else {
         if ($this->petitionAlreadyExists($contactCount) == FALSE) {
           $this->processPetition($sourceData);
-          $this->_logger->logMessage('Info', 'Imported petition '.$sourceData->sid. 'with API');
+          $this->_logger->logMessage('Info', E::ts('Imported petition ') . $sourceData->sid .  E::ts('with API'));
         }
       }
     }
@@ -77,7 +78,7 @@ class CRM_Corrections_PetitionSignature {
     }
     // error if email is empty
     if (empty($this->_email)) {
-      $this->_logger->logMessage(' Error', 'Submission ' . $sourceData->sid . ' has no email, ignored');
+      $this->_logger->logMessage(' Error', E::ts('Submission ') . $sourceData->sid . E::ts(' has no email, ignored'));
       return FALSE;
     }
     return TRUE;
@@ -90,19 +91,20 @@ class CRM_Corrections_PetitionSignature {
    * @return bool
    */
   private function petitionAlreadyExists($contactCount) {
-    $contactIds = array();
+    $contactIds = [];
     // if count = 1, single contact else many
     if ($contactCount == 1) {
-      $contactIds[] = civicrm_api3('Contact', 'getvalue', array(
+      $contactIds[] = civicrm_api3('Contact', 'getvalue', [
         'email' => $this->_email,
         'return' => 'id',
-      ));
-    } else {
-      $contacts = civicrm_api3('Contact', 'get', array(
+      ]);
+    }
+    else {
+      $contacts = civicrm_api3('Contact', 'get', [
         'email' => $this->_email,
         'return' => 'id',
-        'options' => array('limit' => 0),
-      ));
+        'options' => ['limit' => 0],
+      ]);
       foreach ($contacts['values'] as $contact) {
         $contactIds[] = $contact['id'];
       }
@@ -111,9 +113,9 @@ class CRM_Corrections_PetitionSignature {
     foreach ($contactIds as $contactId) {
       $petitionCount = $this->countPetitionsForContact($contactId);
       if ($petitionCount > 0) {
-        $this->_logger->logMessage('Info', 'Found an existing petition activity for contact '
-          .$contactId.' and campaign '.$this->_campaignId.' on date '.$this->_submissionDate->format('d-m-Y')
-          .', ignored.');
+        $this->_logger->logMessage('Info', E::ts('Found an existing petition activity for contact ')
+          . $contactId . E::ts(' and campaign ') . $this->_campaignId . E::ts(' on date ')
+          . $this->_submissionDate->format('d-m-Y') . E::ts(', ignored.'));
         return TRUE;
       }
     }
@@ -133,31 +135,31 @@ class CRM_Corrections_PetitionSignature {
         AND cac.record_type_id = %2
         WHERE ca.activity_type_id = %3 AND ca.is_deleted = %4 AND ca.is_current_revision = %5  
         AND ca.campaign_id = %6 AND ca.activity_date_time BETWEEN %7 AND %8';
-      $queryParams = array(
-        1 => array($contactId, 'Integer'),
-        2 => array($this->_targetRecordTypeId, 'Integer'),
-        3 => array($this->_petitionActivityTypeId, 'Integer'),
-        4 => array(0, 'Integer'),
-        5 => array(1, 'Integer'),
-        6 => array($this->_campaignId, 'Integer'),
-        7 =>array($this->_submissionDate->format('Y-m-d').' 00:00:00', 'String'),
-        8 => array($this->_submissionDate->format('Y-m-d').' 23:59:59', 'String')
-      );
+      $queryParams = [
+        1 => [$contactId, 'Integer'],
+        2 => [$this->_targetRecordTypeId, 'Integer'],
+        3 => [$this->_petitionActivityTypeId, 'Integer'],
+        4 => [0, 'Integer'],
+        5 => [1, 'Integer'],
+        6 => [$this->_campaignId, 'Integer'],
+        7 => [$this->_submissionDate->format('Y-m-d').' 00:00:00', 'String'],
+        8 => [$this->_submissionDate->format('Y-m-d').' 23:59:59', 'String'],
+      ];
     } else {
       $query = 'SELECT COUNT(*) FROM civicrm_activity ca
         JOIN civicrm_activity_contact cac ON ca.id = cac.activity_id AND cac.contact_id = %1 
         AND cac.record_type_id = %2
         WHERE ca.activity_type_id = %3 AND ca.is_deleted = %4 AND ca.is_current_revision = %5  
         AND ca.activity_date_time BETWEEN %6 AND %7';
-      $queryParams = array(
-        1 => array($contactId, 'Integer'),
-        2 => array($this->_targetRecordTypeId, 'Integer'),
-        3 => array($this->_petitionActivityTypeId, 'Integer'),
-        4 => array(0, 'Integer'),
-        5 => array(1, 'Integer'),
-        6 =>array($this->_submissionDate->format('Y-m-d').' 00:00:00', 'String'),
-        7 => array($this->_submissionDate->format('Y-m-d').' 23:59:59', 'String')
-      );
+      $queryParams = [
+        1 => [$contactId, 'Integer'],
+        2 => [$this->_targetRecordTypeId, 'Integer'],
+        3 => [$this->_petitionActivityTypeId, 'Integer'],
+        4 => [0, 'Integer'],
+        5 => [1, 'Integer'],
+        6 => [$this->_submissionDate->format('Y-m-d').' 00:00:00', 'String'],
+        7 => [$this->_submissionDate->format('Y-m-d').' 23:59:59', 'String'],
+      ];
     }
     return CRM_Core_DAO::singleValueQuery($query, $queryParams);
   }
@@ -168,7 +170,7 @@ class CRM_Corrections_PetitionSignature {
    * @param $sourceData
    */
   private function processPetition($sourceData) {
-    $params = array();
+    $params = [];
     // build array from object
     foreach ($sourceData as $key => $value) {
       if (!is_object($value)) {

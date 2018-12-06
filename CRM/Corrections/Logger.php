@@ -1,4 +1,5 @@
 <?php
+use CRM_Corrections_ExtensionUtil as E;
 
 /**
  * Class for basic logging
@@ -9,7 +10,7 @@
  */
 class CRM_Corrections_Logger {
   
-  private $_logFile = null;
+  private $_logFile = NULL;
 
   /**
    * CRM_Fintrxn_Logger constructor.
@@ -18,7 +19,7 @@ class CRM_Corrections_Logger {
   function __construct($logName) {
     $config = CRM_Core_Config::singleton();
     $runDate = new DateTime('now');
-    $fileName = $config->configAndLogDir.$logName.'_'.$runDate->format('YmdHis').'.log';
+    $fileName = $config->configAndLogDir . $logName . '_' . $runDate->format('YmdHis') . '.log';
     $this->_logFile = fopen($fileName, 'w');
   }
 
@@ -48,6 +49,6 @@ class CRM_Corrections_Logger {
   }
   public function abort($message) {
     $this->logMessage('Fatal', $message);
-    throw new Exception (ts('Fatal error ').$message.ts(', contact your system administrator.'));
+    throw new Exception (E::ts('Fatal error ') . $message . E::ts(', contact your system administrator.'));
   }
 }

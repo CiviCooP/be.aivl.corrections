@@ -12,5 +12,5 @@
 function civicrm_api3_aivl_web_Unsubscribe($params) {
   $unsubscribe = new CRM_Corrections_Unsubscribe();
   $unsubscribe->process();
-  return civicrm_api3_create_success(array(), $params, 'AivlWeb', 'Unsubscribe');
+  return civicrm_api3_create_success([], $params, 'AivlWeb', 'Unsubscribe');
 }

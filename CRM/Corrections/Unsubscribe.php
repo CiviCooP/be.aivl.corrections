@@ -1,4 +1,5 @@
 <?php
+use CRM_Corrections_ExtensionUtil as E;
 
 /**
  * Class for processing unsubscribes from website until we have final solution (issue 2199)
@@ -12,7 +13,7 @@ class CRM_Corrections_Unsubscribe {
   private $_logger = NULL;
   private $_filePath = NULL;
   private $_files = NULL;
-  private $_data = array();
+  private $_data = [];
   private $_readHeader = FALSE;
 
   /*
@@ -30,7 +31,7 @@ class CRM_Corrections_Unsubscribe {
     // get file path and all csv files within
     $this->getCsvPath();
     if ($this->_filePath) {
-      $this->_files = glob($this->_filePath. "*.csv");
+      $this->_files = glob($this->_filePath . "*.csv");
     }
     // read each file and add records to data array
     foreach ($this->_files as $fileName) {
@@ -38,18 +39,18 @@ class CRM_Corrections_Unsubscribe {
       while (!feof($file)) {
         $record = fgetcsv($file, 0,';');
         if ($this->canProcessRecord($record)) {
-          $this->_data[] = array(
+          $this->_data[] = [
             'first_name' => $record[9],
             'last_name' => $record[10],
             'birth_date' => date('Ymd', strtotime($record[11])),
             'email' => $record[12],
             'unsubscribe' => $record[13],
-          );
+          ];
         }
       }
       fclose($file);
       $parts = explode('.csv', $fileName);
-      $newName = $parts[0].'_processed.old';
+      $newName = $parts[0] . '_processed.old';
       rename($fileName, $newName);
     }
     // unsubscribe all contacts in data array
@@ -64,7 +65,7 @@ class CRM_Corrections_Unsubscribe {
    */
   private function canProcessRecord($record) {
     if (empty($record)) {
-      $this->_logger->logMessage('Error', 'Could not read a record in the file, please check for special characters!');
+      $this->_logger->logMessage('Error', E::ts('Could not read a record in the file, please check for special characters!'));
       return FALSE;
     }
     // once we have read the header we can process each following record
@@ -87,7 +88,7 @@ class CRM_Corrections_Unsubscribe {
    * @return bool
    */
   private function isHeader($record) {
-    $headers = array(
+    $headers = [
       'Serienummer',
       'SID',
       'Tijdstip van indienen',
@@ -102,7 +103,7 @@ class CRM_Corrections_Unsubscribe {
       'Geboortedatum',
       'E-mailadres',
       'Ik wil geen e-mails meer ontvangen.',
-      );
+      ];
     foreach ($headers as $key => $value) {
       if (trim($record[$key]) != trim($value)) {
         return FALSE;
@@ -118,26 +119,22 @@ class CRM_Corrections_Unsubscribe {
     foreach ($this->_data as $data) {
       // find contact with email
       try {
-        $foundEmails = civicrm_api3('Email', 'get', array(
-          'email' => $data['email'],
-        ));
+        $foundEmails = civicrm_api3('Email', 'get', ['email' => $data['email']]);
         foreach ($foundEmails['values'] as $foundEmail) {
           try {
-            civicrm_api3('Contact', 'create', array(
+            civicrm_api3('Contact', 'create', [
               'is_opt_out' => 1,
               'id' => $foundEmail['contact_id'],
-            ));
+            ]);
           }
           catch (CiviCRM_API3_Exception $ex) {
           }
         }
       }
       catch (CiviCRM_API3_Exception $ex) {
-        $this->_logger->logMessage('Warning', 'No contact found with email '.$data['email']);
+        $this->_logger->logMessage('Warning', E::ts('No contact found with email ') . $data['email']);
       }
-
     }
-
   }
 
   /**
@@ -146,32 +143,30 @@ class CRM_Corrections_Unsubscribe {
    */
   private function getCsvPath() {
     try {
-      $civiVersion = civicrm_api3('Domain', 'getvalue', array(
+      $civiVersion = civicrm_api3('Domain', 'getvalue', [
         'return' => "version",
         'id' => 1,
-      ));
+      ]);
     }
     catch (CiviCRM_API3_Exception $ex) {
-      $this->_logger->logMessage('Error', 'Could not find a valid file path in '.__METHOD__);
+      $this->_logger->logMessage('Error', E::ts('Could not find a valid file path in ') .__METHOD__);
       return FAlSE;
     }
     $civiVersion = (float) round($civiVersion, 1);
     if ($civiVersion >= 4.7) {
       $container = CRM_Extension_System::singleton()->getFullContainer();
       $this->_filePath = $container->getPath('be.aivl.corrections') . '/resources/unsubscribes/';
-    } else {
+    }
+    else {
       try {
-        $extensionsDir = civicrm_api3('Setting', 'getvalue', array(
-          'name' => "extensionsDir",
-        ));
-        $this->_filePath = $extensionsDir.'/be.aivl.corrections/resources/unsubscribes/';
+        $extensionsDir = civicrm_api3('Setting', 'getvalue', ['name' => "extensionsDir"]);
+        $this->_filePath = $extensionsDir . '/be.aivl.corrections/resources/unsubscribes/';
       }
       catch (CiviCRM_API3_Exception $ex) {
-        $this->_logger->logMessage('Error', 'Could not execute the Setting API in '.__METHOD__);
+        $this->_logger->logMessage('Error', E::ts('Could not execute the Setting API in ') . __METHOD__);
         return FAlSE;
       }
     }
   }
-
 
 }
