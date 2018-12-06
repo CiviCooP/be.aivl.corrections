@@ -16,7 +16,7 @@ use CRM_Corrections_ExtensionUtil as E;
  */
 function civicrm_api3_comm_pref_Fix($params) {
   $count = 0;
-  $query = "SELECT id, preferred_communication_method FROM civicrm_contact WHERE length(preferred_communication_method) = %1";
+  $query = "SELECT id, preferred_communication_method FROM civicrm_contact WHERE length(preferred_communication_method) = %1 LIMIT 2500";
   $dao = CRM_Core_DAO::executeQuery($query, [1 => [1, 'Integer']]);
   while ($dao->fetch()) {
     $new = CRM_Core_DAO::VALUE_SEPARATOR . $dao->preferred_communication_method . CRM_Core_DAO::VALUE_SEPARATOR;
