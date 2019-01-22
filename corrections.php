@@ -3,6 +3,20 @@
 require_once 'corrections.civix.php';
 
 /**
+ * Implements hook_civicrm_validateForm().
+ *
+ * @link https://docs.civicrm.org/dev/en/latest/hooks/hook_civicrm_validateForm/
+ */
+function corrections_civicrm_validateForm($formName, &$fields, &$files, &$form, &$errors) {
+  if ($form instanceof CRM_Contribute_Form_Contribution) {
+    if ($form->_action == CRM_Core_Action::UPDATE) {
+      if (isset($fields['total_amount']) && isset($fields['net_amount'])) {
+        CRM_Corrections_Contribution::validateForm($fields, $form);
+      }
+    }
+  }
+}
+/**
  * Implements hook_civicrm_config().
  *
  * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_config
